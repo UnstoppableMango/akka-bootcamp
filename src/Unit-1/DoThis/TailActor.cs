@@ -14,15 +14,18 @@ namespace WinTail
 
         private readonly string _filePath;
         private readonly IActorRef _reporter;
-        private readonly FileObserver _observer;
-        private readonly Stream _fileStream;
-        private readonly StreamReader _fileStreamReader;
+        private FileObserver _observer;
+        private Stream _fileStream;
+        private StreamReader _fileStreamReader;
 
         public TailActor(string filePath, IActorRef reporter)
         {
             _filePath = filePath;
             _reporter = reporter;
+        }
 
+        protected override void PreStart()
+        {
             _observer = new FileObserver(Self, Path.GetFullPath(_filePath));
             _observer.Start();
             
@@ -55,6 +58,15 @@ namespace WinTail
             {
                 _reporter.Tell(read.Text);
             }
+        }
+
+        protected override void PostStop()
+        {
+            _observer.Dispose();
+            _observer = null;
+            _fileStreamReader.Close();
+            _fileStreamReader.Dispose();
+            base.PostStop();
         }
     }
 }
